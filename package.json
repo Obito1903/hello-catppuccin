@@ -1,0 +1,18 @@
+{
+  "devDependencies": {
+    "@catppuccin/tailwindcss": "^0.1.6",
+    "prettier": "^3.2.4",
+    "prettier-plugin-go-template": "^0.0.15",
+    "tailwindcss": "^3.4.1"
+  },
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:tailwindcss dev:example --print-name --race",
+    "dev:tailwindcss": "touch ./assets/styles/tw-main-dist.css && NODE_ENV=development npx tailwindcss -i ./assets/styles/tw-main-src.css -o ./assets/styles/tw-main-dist.css --watch --minify",
+    "dev:example": "hugo server --source ./exampleSite --themesDir ../.. --baseURL http://192.168.27.65/ --bind 0.0.0.0 --port 1313 --buildDrafts --cleanDestinationDir  --disableFastRender --gc --minify --noHTTPCache --printI18nWarnings --renderToDisk --templateMetrics --templateMetricsHints",
+    "build:vendorlibs": "npm-run-all preinstall postinstall --print-name",
+    "build:tailwindcss": "NODE_ENV=production npx tailwindcss -i ./assets/styles/tw-main-src.css -o ./assets/styles/tw-main-dist.css --minify"
+  },
+  "dependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

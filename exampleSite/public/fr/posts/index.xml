@@ -1,0 +1,316 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on Samuel Rodrigues</title><link>http://192.168.27.65:1313/fr/posts/</link><description>Recent content in Posts on Samuel Rodrigues</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><copyright>&lt;a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0&lt;/a></copyright><lastBuildDate>Tue, 20 Jun 2023 01:15:00 +0100</lastBuildDate><atom:link href="http://192.168.27.65:1313/fr/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Vertiable Audio Spatial sur Linux avec l'aide des HRTF</title><link>http://192.168.27.65:1313/fr/posts/2023/06/vertiable-audio-spatial-sur-linux-avec-laide-des-hrtf/</link><pubDate>Tue, 20 Jun 2023 01:15:00 +0100</pubDate><guid>http://192.168.27.65:1313/fr/posts/2023/06/vertiable-audio-spatial-sur-linux-avec-laide-des-hrtf/</guid><description>Vous êtes peut-être comme moi et vous aimez être plongé dans l&amp;rsquo;ambiance lorsque vous regardez un film ou jouez à un jeu vidéo, mais malheureusement, vous n&amp;rsquo;avez pas l&amp;rsquo;espace ni l&amp;rsquo;argent pour avoir un véritable système home cinéma.
+Pourtant, vous voulez avoir une expérience &amp;ldquo;d&amp;rsquo;immersion totale&amp;rdquo;. La solution évidente est d&amp;rsquo;utiliser une solution logicielle de surround virtuel, comme ce que propose Dolby ou les AirPods.
+Un problème se pose cependant, évidemment vous n&amp;rsquo;utilisez pas Windows et même si vous le faisiez, la solution Dolby est assez coûteuse, et la fonctionnalité Spatial Audio des AirPods ne fonctionne qu&amp;rsquo;avec les appareil Apple sur du contenu spécifique.</description><content type="html"><![CDATA[<p>Vous êtes peut-être comme moi et vous aimez être plongé dans l&rsquo;ambiance lorsque vous regardez un film ou jouez à un jeu vidéo, mais malheureusement, vous n&rsquo;avez pas l&rsquo;espace ni l&rsquo;argent pour avoir un véritable système home cinéma.</p>
+<p>Pourtant, vous voulez avoir une expérience &ldquo;d&rsquo;immersion totale&rdquo;. La solution évidente est d&rsquo;utiliser une solution logicielle de surround virtuel, comme ce que propose Dolby ou les AirPods.</p>
+<p>Un problème se pose cependant, évidemment vous n&rsquo;utilisez pas Windows et même si vous le faisiez, la solution Dolby est assez coûteuse, et la fonctionnalité Spatial Audio des AirPods ne fonctionne qu&rsquo;avec les appareil Apple sur du contenu spécifique.</p>
+<p>Mais ne vous inquiétez pas, une solution existe ! Grâce à Pipewire, vous pouvez facilement créer quelque chose de similaire, voire même meilleurs si vous avait du temps a perdre !</p>
+<h2 id="how-spatial-audio-work">How Spatial Audio work</h2>
+<p>First, before starting to configure Pipewire, let&rsquo;s dive a little on how this &ldquo;Spatial Audio&rdquo; thing work.</p>
+<p>The goal of spatial audio is to emulate and recreate the feeling that a sound come from a certain direction while having only two audio channels to play with. And thus recreate a something like a 7.1 surround system or more if you really want to.</p>
+
+    <img src="surround-setup.png"  alt="7.1 Surround Setup"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>The thing is that you only have two ears, so how is it that you can know where a sound come from ?</p>
+<p>Well, to put it simply, your brain is very clever. It uses a ton of information like the delay that a sound took to reach both of your ears or the way sound bounce around your ear canal. But the thing is that your brain is also tuned to your head and ear shape.</p>
+<p>This means that theoretically, if you send the right sound to your ears, you can make your brain believe that it come from a totally different direction. And guess what, people have come up with a way to do exactly that !</p>
+<p>This method involve something called a <a href="https://en.wikipedia.org/wiki/Head-related_transfer_function#:~:text=A%20head%2Drelated%20transfer%20function,from%20a%20point%20in%20space.">Head-related Transfer Function</a> or HRTF for short. According to Wikipedia, an HRTF is a response that characterizes how an ear receives a sound from a point in space.</p>
+<p>From this HRTF, you can then create a filter that will make the sound appear as it came from a specific point in space. Various formats exist to store this information, the most common ones being sofa from <a href="https://www.sofaconventions.org/mediawiki/index.php/SOFA_(Spatially_Oriented_Format_for_Acoustics)">sofaconventions</a> and as a simple impulse response with backed-in directionality.</p>
+<h2 id="finding-your-hrtf">Finding your HRTF</h2>
+<p>Now that we know how we can recreate spatial audio, we need to find ourselves a proper HRTF. There are three ways you can go about it :</p>
+<ol>
+<li>Grab a generic HRTF impulse response from the web (something like the Dobly Atmos For Headphones one)</li>
+<li>Try a bunch a HRTF created by research institutes a keep the one you prefer, you can find a list of them <a href="https://www.sofaconventions.org/mediawiki/index.php/Files">here</a></li>
+<li>Create your own, this can be a bit time-consuming and costly if you want to do it properly.</li>
+</ol>
+<p>Obviously, you&rsquo;ll get the best result with a custom HRTF, but this probably too much trouble than it&rsquo;s worth to create one. So I recommend simply using a generic one like the Dolby Atmos one.</p>
+<p>You can find some <a href="https://airtable.com/shruimhjdSakUPg2m/tbloLjoZKWJDnLtTc">here</a>. Download the HeSuVi wav file of your choice, just make sure it&rsquo;s a file intended for 7.1 use.</p>
+<h2 id="applying-our-hrtf">Applying our HRTF</h2>
+<p>And now for the hard part ! Well, in reality, it&rsquo;s pretty simple. You just need to create a new filter chain inside your Pipewire using a convolver filter.</p>
+<p>If you don&rsquo;t already have one, create a folder <code>pipewire</code> inside <code>~/.config</code></p>
+<p>Inside it, move your HRTF impulse response file and create a folder called <code>pipewire.conf.d</code></p>
+<p>This folder allows us to only define part of the Pipewire configuration without having to copy the whole default config</p>
+<p>Now create a file called <code>99-spatial-audio.conf</code> inside <code>pipewire.conf.d</code> and start by defining a filter-chain</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">context.modules</span> = <span style="color:#e6db74">[</span>
+</span></span><span style="display:flex;"><span>    { <span style="color:#f92672">name</span> = <span style="color:#e6db74">libpipewire-module-filter-chain</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">args</span> = {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">node.description</span> = <span style="color:#e6db74">&#34;Spatial</span> <span style="color:#e6db74">Audio</span> <span style="color:#e6db74">Sink&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">media.name</span>       = <span style="color:#e6db74">&#34;Spatial</span> <span style="color:#e6db74">Audio</span> <span style="color:#e6db74">Sink&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">filter.graph</span> = {
+</span></span><span style="display:flex;"><span>		        <span style="color:#75715e"># ... Filter config
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            }
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">capture.props</span> = {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">node.name</span>      = <span style="color:#e6db74">&#34;effect_input.spatial-audio&#34;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">media.class</span>    = <span style="color:#e6db74">Audio/Sink</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.channels</span> = <span style="color:#ae81ff">8</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.position</span> = <span style="color:#e6db74">[</span> <span style="color:#e6db74">FL</span> <span style="color:#e6db74">FR</span> <span style="color:#e6db74">FC</span> <span style="color:#e6db74">LFE</span> <span style="color:#e6db74">RL</span> <span style="color:#e6db74">RR</span> <span style="color:#e6db74">SL</span> <span style="color:#e6db74">SR</span> <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">playback.props</span> = {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">node.name</span>      = <span style="color:#e6db74">&#34;effect_output.spatial-audio&#34;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">node.passive</span>   = <span style="color:#e6db74">true</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.channels</span> = <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.position</span> = <span style="color:#e6db74">[</span> <span style="color:#e6db74">FL</span> <span style="color:#e6db74">FR</span> <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">]</span>
+</span></span></code></pre></div><p>With this we have a basic filter-chain that will take as input 8 channels, corresponding to a 7.1 surround setup, and will output two channels for our headset or speakers</p>
+<p>Now let&rsquo;s configure this filter chain :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">context.modules</span> = <span style="color:#e6db74">[</span>
+</span></span><span style="display:flex;"><span>    { <span style="color:#f92672">name</span> = <span style="color:#e6db74">libpipewire-module-filter-chain</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">args</span> = {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">node.description</span> = <span style="color:#e6db74">&#34;Virtual</span> <span style="color:#e6db74">Surround</span> <span style="color:#e6db74">Sink&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">media.name</span>       = <span style="color:#e6db74">&#34;Virtual</span> <span style="color:#e6db74">Surround</span> <span style="color:#e6db74">Sink&#34;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">filter.graph</span> = {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">nodes</span> = <span style="color:#e6db74">[</span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e"># duplicate inputs
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copyFL</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copyFR</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copyFC</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copyRL</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copyRR</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copySL</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copySR</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">copy</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">copyLFE</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e"># apply hrtf - HeSuVi 14-channel WAV
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convFL_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">0</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convFL_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">1</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convSL_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">2</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convSL_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">3</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convRL_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">4</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convRL_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">5</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convFC_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">6</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convFR_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">7</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convFR_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">8</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convSR_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">9</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convSR_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> = <span style="color:#ae81ff">10</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convRR_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> = <span style="color:#ae81ff">11</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convRR_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> = <span style="color:#ae81ff">12</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convFC_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> = <span style="color:#ae81ff">13</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e"># treat LFE as FC
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convLFE_L</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> =  <span style="color:#ae81ff">6</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">convolver</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">convLFE_R</span> <span style="color:#e6db74">config</span> = { <span style="color:#f92672">filename</span> = <span style="color:#e6db74">&#34;/path/to/hrtf.wav&#34;</span> <span style="color:#e6db74">channel</span> = <span style="color:#ae81ff">13</span> <span style="color:#960050;background-color:#1e0010">}</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e"># stereo output
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">mixer</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">mixL</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">type</span> = <span style="color:#e6db74">builtin</span> <span style="color:#e6db74">label</span> = <span style="color:#e6db74">mixer</span> <span style="color:#e6db74">name</span> = <span style="color:#e6db74">mixR</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">links</span> = <span style="color:#e6db74">[</span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e"># input to convolver 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyFL:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convFL_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyFL:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convFL_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copySL:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convSL_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copySL:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convSL_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyRL:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convRL_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyRL:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convRL_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyFC:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convFC_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyFR:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convFR_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyFR:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convFR_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copySR:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convSR_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copySR:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convSR_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyRR:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convRR_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyRR:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convRR_L:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyFC:Out&#34;</span>  <span style="color:#e6db74">input=&#34;convFC_R:In&#34;</span>  <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyLFE:Out&#34;</span> <span style="color:#e6db74">input=&#34;convLFE_L:In&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;copyLFE:Out&#34;</span> <span style="color:#e6db74">input=&#34;convLFE_R:In&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>                    <span style="color:#75715e"># mix processed signal into stereo input
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convFL_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">1</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convFL_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">1</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convSL_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">2</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convSL_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">2</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convRL_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">3</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convRL_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">3</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convFC_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">4</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convFC_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">4</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convFR_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">5</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convFR_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">5</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convSR_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">6</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convSR_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">6</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convRR_R:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">7</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convRR_L:Out&#34;</span>  <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">7</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convLFE_R:Out&#34;</span> <span style="color:#e6db74">input=&#34;mixR:In</span> <span style="color:#ae81ff">8</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                    { <span style="color:#f92672">output</span> = <span style="color:#e6db74">&#34;convLFE_L:Out&#34;</span> <span style="color:#e6db74">input=&#34;mixL:In</span> <span style="color:#ae81ff">8</span><span style="color:#e6db74">&#34;</span> <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">inputs</span>  = <span style="color:#e6db74">[</span> <span style="color:#e6db74">&#34;copyFL:In&#34;</span> <span style="color:#e6db74">&#34;copyFR:In&#34;</span> <span style="color:#e6db74">&#34;copyFC:In&#34;</span> <span style="color:#e6db74">&#34;copyLFE:In&#34;</span> <span style="color:#e6db74">&#34;copyRL:In&#34;</span> <span style="color:#e6db74">&#34;copyRR:In&#34;,</span> <span style="color:#e6db74">&#34;copySL:In&#34;,</span> <span style="color:#e6db74">&#34;copySR:In&#34;</span> <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">outputs</span> = <span style="color:#e6db74">[</span> <span style="color:#e6db74">&#34;mixL:Out&#34;</span> <span style="color:#e6db74">&#34;mixR:Out&#34;</span> <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">capture.props</span> = {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">node.name</span>      = <span style="color:#e6db74">&#34;effect_input.virtual-surround-7.1-hesuvi&#34;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">media.class</span>    = <span style="color:#e6db74">Audio/Sink</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.channels</span> = <span style="color:#ae81ff">8</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.position</span> = <span style="color:#e6db74">[</span> <span style="color:#e6db74">FL</span> <span style="color:#e6db74">FR</span> <span style="color:#e6db74">FC</span> <span style="color:#e6db74">LFE</span> <span style="color:#e6db74">RL</span> <span style="color:#e6db74">RR</span> <span style="color:#e6db74">SL</span> <span style="color:#e6db74">SR</span> <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">playback.props</span> = {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">node.name</span>      = <span style="color:#e6db74">&#34;effect_output.virtual-surround-7.1-hesuvi&#34;</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">node.passive</span>   = <span style="color:#e6db74">true</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.channels</span> = <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">audio.position</span> = <span style="color:#e6db74">[</span> <span style="color:#e6db74">FL</span> <span style="color:#e6db74">FR</span> <span style="color:#e6db74">]</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">]</span>
+</span></span></code></pre></div><p>Finally, don&rsquo;t forget to replace <code>/path/to/hrtf.wav</code> with the full path to your HRTF file.</p>
+<p>Now you can just restart Pipewire :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>systemctl --user restart pipewire
+</span></span></code></pre></div>
+    <img src="mixer.png"  alt="System audio mixer"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>And enjoy your favorite movies in glorious 7.1 surround !!</p>
+]]></content></item><item><title>Contrôler votre installation HI-FI avec Home-assistant et un IR-ESP01.</title><link>http://192.168.27.65:1313/fr/posts/2022/01/contr%C3%B4ler-votre-installation-hi-fi-avec-home-assistant-et-un-ir-esp01./</link><pubDate>Tue, 25 Jan 2022 17:13:00 +0100</pubDate><guid>http://192.168.27.65:1313/fr/posts/2022/01/contr%C3%B4ler-votre-installation-hi-fi-avec-home-assistant-et-un-ir-esp01./</guid><description>J&amp;rsquo;ai récemment acheté un nouvel amplificateur pour mon installation HI-FI afin de remplacer mon ancien qui devenait capricieux. J&amp;rsquo;ai choisi celui-ci parce que j&amp;rsquo;ai fait une bonne affaire, mais il était également équipé d&amp;rsquo;une télécommande IR pour le contrôler (pas très impressionnant, je sais). Et donc naturellement, j&amp;rsquo;ai voulu l&amp;rsquo;automatiser et l&amp;rsquo;ajouter à mon réseau IoT contrôlé par Home-Assistant, un serveur domotique open-source.
+Pour ce projet, je vais utiliser une carte ESP01 avec le framework ESPHome.</description><content type="html"><![CDATA[
+    <img src="hass-player.png"  alt="Home-assistant media-player"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>J&rsquo;ai récemment acheté un nouvel amplificateur pour mon installation HI-FI afin
+de remplacer mon ancien qui devenait capricieux. J&rsquo;ai choisi celui-ci parce que
+j&rsquo;ai fait une bonne affaire, mais il était également équipé d&rsquo;une télécommande
+IR pour le contrôler (pas très impressionnant, je sais). Et donc naturellement,
+j&rsquo;ai voulu l&rsquo;automatiser et l&rsquo;ajouter à mon réseau IoT contrôlé par
+<a href="https://www.home-assistant.io/">Home-Assistant</a>, un serveur domotique open-source.</p>
+<p>Pour ce projet, je vais utiliser une carte ESP01 avec le framework <a href="https://esphome.io/">ESPHome</a>.</p>
+<h2 id="obtenir-les-codes-ir-de-votre-télécommande">Obtenir les codes IR de votre télécommande</h2>
+<p>Avant de commencer, vous devez d&rsquo;abord mettre la main sur les codes IR de votre
+télécommande, pour pouvoir ensuite les cloner avec l&rsquo;ESP01.
+Vous avez plusieurs possibilités pour cela :</p>
+<ul>
+<li>Trouvez votre télécommande ou une télécommande compatible avec votre appareil
+sur les sites qui répertorient les codes IR des télécommandes, comme Remote Central.</li>
+<li>Enregistrez-les vous-même à l&rsquo;aide d&rsquo;un module récepteur IR (ex : VS1838B)
+connecté à votre ESP.</li>
+</ul>
+<p>Personnellement, comme je n&rsquo;avais pas de récepteur sous la main, j&rsquo;ai opté pour
+Remote Central. Sur le site, vous trouverez une liste des différentes fonctions
+de la télécommande que vous avez choisie et le code <code>Pronto</code> qui leur est associé.
+Le format du code peut être différent selon le site où vous l&rsquo;avez trouvé,
+mais dans la plupart des cas, vous pourrez les utiliser. Pour savoir si votre
+protocole est compatible avec ESPHome, vérifiez <a href="https://esphome.io/components/remote_transmitter.html">ici</a>.</p>
+<h2 id="configuration-de-esphome">Configuration de ESPHome</h2>
+<p>ESPHome est un outil permettant de connecter et de configurer facilement des
+Arduino ou esp à Home Assistant. Dans ce guide, nous allons utiliser la version
+CLI de cet outil dans un conteneur Docker.</p>
+<p>Allez dans un dossier où vous voulez garder la configuration de votre ESP puis
+initialisez le projet ESPHome :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker run --rm -v <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PWD<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>:/config -it esphome/esphome wizard ir_remote.yaml
+</span></span></code></pre></div><p>Cette commande vous demandera d&rsquo;entrer des informations sur la carte que
+vous voulez flasher, la plate-forme, le nom de la carte,
+informations sur le réseau auquel vous voulez qu&rsquo;il se connecte, et enfin
+le mot de passe de l&rsquo;API ESPHome qui sera hébergé sur la carte. À la fin du
+processus, un fichier YAML sera généré avec le nom que vous avez spécifié précédemment.
+Il doit ressembler à quelque chose comme ça :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">esphome</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">ir_remote</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">esp8266</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">board</span>: <span style="color:#ae81ff">esp01</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Enable logging</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">logger</span>:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Enable Home Assistant API</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">api</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">password</span>: <span style="color:#e6db74">&#34;azertyuiop&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">ota</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">password</span>: <span style="color:#e6db74">&#34;azertyuiop&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">wifi</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">ssid</span>: <span style="color:#e6db74">&#34;hello&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">password</span>: <span style="color:#e6db74">&#34;azertyuiop&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Enable fallback hotspot (captive portal) in case wifi connection fails</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">ap</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ssid</span>: <span style="color:#e6db74">&#34;IR-Remote Fallback Hotspot&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">password</span>: <span style="color:#e6db74">&#34;superstrongpassword&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">captive_portal</span>:
+</span></span></code></pre></div><p>Ensuite, nous devons demander à ESPhome de créer un émetteur-récepteur infrarouge.
+Pour ce faire, nous devons d&rsquo;abord définir une entré <code>remote_transmitter</code> dans
+notre fichier de configuration :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">remote_transmitter</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">pin</span>: <span style="color:#ae81ff">GPIO2</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">carrier_duty_percent</span>: <span style="color:#ae81ff">50</span><span style="color:#ae81ff">%</span>
+</span></span></code></pre></div><p>Il suffit de changer l&rsquo;entrée de la broche à la broche à laquelle votre led
+infrarouge sera connecté.</p>
+<p>Ensuite, nous devrons ajouter une entité <code>button</code> pour chaque bouton que vous
+souhaitez émuler.Il suffit d&rsquo;ajouter la section <code>button</code> au YAML, une entrée
+<code>plateform: template</code> pour chacun de vos boutons :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">button</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">platform</span>: <span style="color:#ae81ff">template</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">id</span>: <span style="color:#ae81ff">amp_power_btn</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Amp Power Button</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">on_press</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#f92672">platform</span>: <span style="color:#ae81ff">template</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">id</span>: <span style="color:#ae81ff">amp_vol_plus</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Amp Vol+</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">on_press</span>:
+</span></span></code></pre></div><p>Ensuite, pour chacun des boutons, nous devons spécifier un code correspondant à
+envoyer lorsqu&rsquo;il est activé. Pour cela, nous devons ajouter une action pour
+chaqu&rsquo;un d&rsquo;eux dans la section <code>on_press</code>.
+Vous pouvez trouver une liste d&rsquo;actions possibles <a href="https://esphome.io/components/remote_transmitter.html#remote-transmitter-actions">ici</a>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span>- <span style="color:#f92672">platform</span>: <span style="color:#ae81ff">template</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">id</span>: <span style="color:#ae81ff">amp_power_btn</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">name</span>: <span style="color:#ae81ff">Amp Power Button</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">on_press</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#f92672">remote_transmitter.transmit_pronto</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">data</span>: <span style="color:#e6db74">&#34;Some pronto hex code&#34;</span>
+</span></span></code></pre></div><p>Dans certains cas, l&rsquo;appareil que vous voulez automatiser aura besoin que le
+code soit répété plusieurs fois pour qu&rsquo;il soit enregistré.
+Pour cela, il suffit d&rsquo;ajouter une section <code>repeat</code> sous notre action.
+Dans mon cas, mon ampli nécessite que le code soit envoyé 2 fois :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span>- <span style="color:#f92672">remote_transmitter.transmit_pronto</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">data</span>: <span style="color:#e6db74">&#34;Some pronto hex code&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">repeat</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">times</span>: <span style="color:#ae81ff">2</span>
+</span></span></code></pre></div><p>Une fois que vous avez fini d&rsquo;ajouter tous vos boutons, nous pouvons passer à
+l&rsquo;envoie de la configuration vers votre ESP. Pour ce faire, il suffit de le
+brancher à votre ordinateur et de lancer la compilation et l&rsquo;envoie avec ESPhome :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker run --rm -v <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PWD<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>:/config --device<span style="color:#f92672">=</span>/dev/ttyUSB0 -it esphome/esphome run ir_remote.yaml
+</span></span></code></pre></div><p>Où <code>/dev/ttyUSB0</code> est le port usb auquel votre ESP est connecté.</p>
+<h2 id="câblage-de-lémetteur-ir">Câblage de l&rsquo;émetteur IR</h2>
+<p>La prochaine étape est de construire notre circuit pour piloter la led avec l&rsquo;ESP.</p>
+<p>Vous aurez besoin de :</p>
+<ul>
+<li>Une alimentation 3.3v</li>
+<li>1x LED infrarouge</li>
+<li>1x resistance de 1k Ohm</li>
+<li>1x Transistor PNP (P2N2222A dans mon cas)</li>
+</ul>
+<p><strong>Schéma du circuit :</strong></p>
+
+    <img src="circuit-diagram.png"  alt="Circuit diagram"  class="center"  style="border-radius: 8px;"  />
+
+
+<p><br/><br/></p>
+
+    <img src="circuit-drawing.png"  alt="Circuit drawing"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>Une fois que tout est câblé, vous pouvez tout mettre sous tension. Pour vérifier
+que tout fonctionne correctement, vous pouvez retourner sur votre ordinateur
+et lancer le tableau de bord d&rsquo;ESPhome :</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker run --rm --net<span style="color:#f92672">=</span>host -v <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>PWD<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>:/config -it esphome/esphome
+</span></span></code></pre></div>
+    <img src="esp-home-dashboard.png"  alt="Circuit drawing"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>Si tout va bien, vous devriez voir votre ESP apparaître en ligne d&rsquo;ici une
+minute ou deux.</p>
+<h2 id="ajout-de-esphome-à-home-assistant">Ajout de ESPhome à Home-assistant</h2>
+<p>Enfin, pour ajouter votre télécommande au Home-assistant, vous avez deux options :</p>
+<ul>
+<li>Attendre que Home-assistant trouve votre ESP.</li>
+<li>L&rsquo;ajouter manuellement si vous connaissez son adresse IP.</li>
+</ul>
+<p>Si vous choisissez de l&rsquo;ajouter manuellement, c&rsquo;est assez simple :
+il suffit d&rsquo;aller dans le menu Integration dans les paramètres de Hass et d&rsquo;ajouter
+l&rsquo;intégration ESPhome. Il vous sera demandé d&rsquo;entrer l&rsquo;IP de l&rsquo;ESP.
+Une fois cela fait, il vérifiera s&rsquo;il peut l&rsquo;atteindre et si oui, c&rsquo;est terminé !</p>
+
+    <img src="hass-entity.png"  alt="Circuit drawing"  class="center"  style="border-radius: 8px;"  />
+
+
+]]></content></item></channel></rss>

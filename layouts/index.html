@@ -1,0 +1,26 @@
+{{ define "main" }}
+  <main aria-role="main">
+    <div>
+      {{ if .Site.Params.Portrait.Path }}
+        <img src="{{ .Site.Params.Portrait.Path }}" class="circle" alt="{{ .Site.Params.Portrait.Alt }}" />
+      {{ end }}
+
+
+      <h1 class="text-center text-4xl font-bold mt-20"><span class="text-3xl text-subtext0"><</span> {{ .Site.Title }} <span class="text-3xl text-subtext0">/></span></h1>
+
+      {{- with .Site.Params.homeSubtitle }}
+        <p class="text-center text-lg text-subtext1 mt-5">{{ . }}</p>
+      {{- end }}
+
+      {{- with .Site.Params.social }}
+        <div class="flex justify-center mt-4 text-subtext0">
+          {{/* {{ partial "social-icons.html" . }} */}}
+          {{ range . -}}
+            &nbsp; <a href="{{ .url }}" target="_blank" rel="noopener" title="{{ .name | humanize }}">{{ partial "svg.html" .name }}</a> &nbsp;
+          {{- end -}}
+        </div>
+      {{- end }}
+
+    </div>
+  </main>
+{{ end }}
