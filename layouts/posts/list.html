@@ -2,35 +2,37 @@
   {{ $paginator := .Paginate .Data.Pages }}
 
 
-  <main class="posts">
-    <h1>{{ .Title }}</h1>
+  <main class="mt-6 lg:self-center w-full">
+    <h1 class="text-4xl font-bold mb-2 lg:mb-10 lg:text-5xl">{{ .Title }}</h1>
 
     {{ if .Content }}
       <div class="content">{{ .Content }}</div>
     {{ end }}
 
-    {{ range $paginator.Pages.GroupByDate "2006" }}
-      <div class="posts-group">
-        <div class="post-year">{{ .Key }}</div>
 
-        <ul class="posts-list">
-          {{ range .Pages }}
-            <li class="post-item">
-              <a href="{{ .Permalink }}">
-                <span class="post-title">{{ .Title }}</span>
-                <span class="post-day">
-                  {{ if .Site.Params.dateformShort }}
-                    {{ .Date.Format .Site.Params.dateformShort }}
-                  {{ else }}
-                    {{ .Date.Format "Jan 2" }}
-                  {{ end }}
-                </span>
-              </a>
-            </li>
-          {{ end }}
-        </ul>
-      </div>
-    {{ end }}
+    <div class="flex flex-col space-y-2 lg:space-y-8">
+      {{ range $paginator.Pages.GroupByDate "2006" }}
+        <div class="lg:flex lg:flex-row">
+          <div class="text-2xl text-overlay1 pb-1 mb-3 mt-2 flex flex-col space-y-4 border-b-2 border-dashed border-surface1 lg:text-4xl lg:my-0 lg:border-none lg:mr-8">{{ .Key }}</div>
+          <ul class="flex flex-col space-y-2 mb-1 w-full lg:mb-0 lg:pl-2 lg:h-full lg:p-0">
+            {{ range .Pages }}
+              <li class="lg:py-2 lg:border-b-2 lg:border-dotted lg:border-surface1 inline list-none">
+                <a href="{{ .Permalink }}" class="flex space-x-4 lg:justify-between">
+                  <span class="text-overlay0 min-w-fit order-1 lg:order-2">
+                    {{ if .Site.Params.dateformShort }}
+                      {{ .Date.Format .Site.Params.dateformShort }}
+                    {{ else }}
+                      {{ .Date.Format "Jan 2" }}
+                    {{ end }}
+                  </span>
+                  <span class="text-lg font-medium text-subtext0 order-2 lg:order-1 lg:ml-0 lg:text-xl lg:font-light lg:align-text-middle">{{ .Title }}</span>
+                </a>
+              </li>
+            {{ end }}
+          </ul>
+        </div>
+      {{ end }}
+    </div>
     {{/* {{ partial "pagination-list.html" . }} */}}
   </main>
 {{ end }}

@@ -11,7 +11,7 @@
     <div class="flex flex-col grow">
         {{ partial "header.html" . }}
 
-        <div class="mx-4 grow overflow-y-scroll">
+        <div class="px-4 grow overflow-y-hidden md:max-w-screen-md md:px-0 w-full flex self-center">
             {{ block "main" . }}{{ end }}
         </div>
 

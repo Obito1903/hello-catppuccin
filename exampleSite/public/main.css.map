@@ -1,0 +1,13 @@
+{
+	"version": 3,
+	"file": "main.css",
+	"sourceRoot": "/home/obito1903/Documents/Project/hello-catppuccin/exampleSite",
+	"sources": [
+		"/home/obito1903/Documents/Project/hello-catppuccin/assets/scss/main.scss"
+	],
+	"sourcesContent": [
+		".c-footer-separate>*:not(:last-child)::after {\n    content: \"•\";\n    padding: 0 5px;\n}\n\n.c-footer-separate>*>a {\n    text-decoration: underline;\n    text-underline-offset: 2px;\n}\n"
+	],
+	"names": [],
+	"mappings": "AAAA,AAAA,kBAAkB,CAAC,CAAC,CAAA,GAAK,EAAC,UAAU,GAAG,KAAK,AAAC,CACzC,OAAO,CAAE,GAAG,CACZ,OAAO,CAAE,KAAK,CACjB,AAED,AAAA,kBAAkB,CAAC,CAAC,CAAC,CAAC,AAAC,CACnB,eAAe,CAAE,SAAS,CAC1B,qBAAqB,CAAE,GAAG,CAC7B"
+}

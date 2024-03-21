@@ -4,11 +4,15 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        // 'sans': ["Inter", "sans-serif"],
         'sans': ["Fira Sans", "sans-serif"],
         'mono': ["Fira Mono", "monospace"]
       }
     },
   },
-  plugins: [require("@catppuccin/tailwindcss")({ defaultFlavour: "macchiato" })],
+  plugins: [
+    require("@catppuccin/tailwindcss")({ defaultFlavour: "frappe" }),
+    require('@tailwindcss/typography')
+  ],
 
 }

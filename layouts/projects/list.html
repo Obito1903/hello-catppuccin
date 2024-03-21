@@ -1,0 +1,36 @@
+{{ define "main" }}
+  {{ $paginator := .Paginate .Data.Pages }}
+
+
+  <main class="mt-6 self-center">
+    <h1 class="text-4xl font-bold mb-2">{{ .Title }}</h1>
+
+    {{ if .Content }}
+      <div class="content">{{ .Content }}</div>
+    {{ end }}
+
+
+    <div class="flex flex-col">
+      {{ range $paginator.Pages.GroupByDate "2006" }}
+        <div class="text-2xl text-overlay1 mb-2 mt-2 flex flex-col space-y-4 border-b-2 border-dashed border-surface1">{{ .Key }}</div>
+        <ul class="flex flex-col space-y-2 mb-1">
+          {{ range .Pages }}
+            <li>
+              <a href="{{ .Permalink }}" class="flex space-x-4">
+                <span class="text-overlay0 min-w-fit">
+                  {{ if .Site.Params.dateformShort }}
+                    {{ .Date.Format .Site.Params.dateformShort }}
+                  {{ else }}
+                    {{ .Date.Format "Jan 2" }}
+                  {{ end }}
+                </span>
+                <span class="text-lg font-medium text-subtext0">{{ .Title }}</span>
+              </a>
+            </li>
+          {{ end }}
+        </ul>
+      {{ end }}
+    </div>
+    {{/* {{ partial "pagination-list.html" . }} */}}
+  </main>
+{{ end }}

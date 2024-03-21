@@ -1,11 +1,11 @@
-<footer class="mx-auto text-center text-overlay1">
+<footer class="mx-auto text-center text-overlay1 my-2">
   {{ if or (.Site.Params.footer.trademark) (.Site.Params.footer.author) (.Site.Params.footer.copyright)
     (.Site.Params.footer.rss) (.Site.Params.footer.topText)
   }}
-    <div class="">
+    <div class="flex justify-center c-footer-separate">
       {{ if .Site.Params.footer.trademark }}<span>&copy; {{ now.Format "2006" }}</span>{{ end }}
       {{ if .Site.Params.footer.author }}<span><a href="{{ .Site.BaseURL }}">{{ .Site.Author.name }}</a></span>{{ end }}
-      {{ if .Site.Params.footer.copyright }}<span>{{ .Site.Copyright| safeHTML }}</span>{{ end }}
+      {{ if .Site.Params.footer.copyright }}<span>{{ .Site.Copyright| safeHTML }}</span></span>{{ end }}
       {{ if .Site.Params.footer.rss }}
         <span
           ><a href="{{ " posts/index.xml" | absLangURL }}" target="_blank" title="rss"
@@ -16,6 +16,11 @@
         ></span>
       {{ end }}
       {{ range .Site.Params.footer.topText }}<span>{{ . | safeHTML }}</span>{{ end }}
+    </div>
+  {{ end }}
+  {{ with .Site.Params.footer.bottomText }}
+    <div class="flex justify-center c-footer-separate">
+      {{ range . }}<span>{{ . | safeHTML }}</span>{{ end }}
     </div>
   {{ end }}
 </footer>

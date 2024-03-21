@@ -1,0 +1,9 @@
+.c-footer-separate>*:not(:last-child)::after {
+    content: "•";
+    padding: 0 5px;
+}
+
+.c-footer-separate>*>a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
